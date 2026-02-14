@@ -1,0 +1,21 @@
+# --- Core Engine ---
+asyncio
+pydantic>=2.0.0
+datetime
+
+# --- Data Science & Storage ---
+pandas
+numpy
+duckdb
+pyarrow
+
+# --- AI & Agents ---
+openai
+langchain
+langgraph
+ollama
+
+# --- UI & Deployment ---
+streamlit
+requests
+python-dotenv
