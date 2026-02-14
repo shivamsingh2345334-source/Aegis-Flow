@@ -1,0 +1,92 @@
+import asyncio
+import random
+import time
+import pandas as pd
+from datetime import datetime
+class AegisSensorSim:
+    def __init__(self, num_sensors=1000):
+        self.num_sensors = num_sensors
+        self.sensor_ids = [f"SNS-{i:04d}" for i in range(num_sensors)]
+
+    async def generate_ping(self):
+        """Ek single sensor ka data point generate karta hai."""
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "sensor_id": random.choice(self.sensor_ids),
+            "rainfall_mm": round(random.uniform(0, 50), 2),
+            "water_level_m": round(random.uniform(0, 10), 2),
+            "humidity": round(random.uniform(40, 95), 2),
+            "status": "ACTIVE"
+        }
+
+    async def produce_batch(self, batch_size=10000):
+        """Hazaaron pings ek saath generate karta hai (Asynchronous)."""
+        tasks = [self.generate_ping() for _ in range(batch_size)]
+        return await asyncio.gather(*tasks)
+
+# --- Execution Logic ---
+async def main():
+    sim = AegisSensorSim(num_sensors=5000)
+    print("🚀 Aegis-Flow: Starting High-Throughput Simulation...")
+
+    start_time = time.time()
+
+    # Hum 1 Lakh pings generate karke dekhte hain kitni der lagti hai
+    total_pings = 100000
+    batch_size = 20000
+    all_data = []
+
+    for i in range(0, total_pings, batch_size):
+        batch = await sim.produce_batch(batch_size)
+        all_data.extend(batch)
+        print(f"✅ Generated {len(all_data)} / {total_pings} pings...")
+
+    end_time = time.time()
+
+
+    df = pd.DataFrame(all_data)
+    print("\n📊 --- DATA PREVIEW (First 5 Rows) ---")
+    print(df.head())
+
+    print(f"\n⚡ Performance: {total_pings} pings generated in {end_time - start_time:.2f} seconds.")
+    print(f"🔥 Scale: Equivalent to ~{int(total_pings / (end_time - start_time))} pings per second!")
+
+await main()
+
+
+import duckdb
+import pandas as pd
+import os
+
+con = duckdb.connect(database='aegis_storage.db')
+def save_partitioned_data(df):
+    """Data ko City aur Date ke hisaab se partition karke save karna."""
+
+   
+    if not os.path.exists('aegis_vault'):
+        os.makedirs('aegis_vault')
+
+    print("📦 Partitioning and Archiving Data...")
+
+   
+    con.execute("""
+        COPY (SELECT *, CAST(timestamp AS DATE) as date_key FROM df)
+        TO 'aegis_vault'
+        (FORMAT PARQUET, PARTITION_BY (city, date_key), OVERWRITE_OR_IGNORE)
+    """)
+
+    print("✅ Vault Updated! Data is now organized by City and Date.")
+
+cities = ['Prayagraj', 'Patna', 'Varanasi', 'Bhagalpur']
+test_df = pd.DataFrame([{
+    "timestamp": "2024-05-20T10:00:00",
+    "city": random.choice(cities),
+    "sensor_id": f"SNS-{random.randint(1, 100)}",
+    "rainfall_mm": random.uniform(0, 50)
+} for _ in range(50000)])
+
+save_partitioned_data(test_df)
+
+
+print("\n📂 Folder Structure Created:")
+!ls -R aegis_vault | head -n 10
